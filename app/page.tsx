@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { cacheTag, cacheLife } from 'next/cache'
+import { cacheLife } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import { addLink, deleteLink } from './actions'
 import type { Link } from '@/lib/supabase'
@@ -7,19 +7,36 @@ import type { Link } from '@/lib/supabase'
 // Cached data layer — PPR: prerendered at build, revalidated on tag
 async function LinkList() {
   'use cache'
-  cacheTag('links')
   cacheLife('minutes')
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-  const { data: links } = await supabase
-    .from('links')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!links?.length) {
+  if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder')) {
+    return (
+      <p className="text-zinc-500 text-sm py-8 text-center">
+        Supabase 연결 설정이 필요합니다.
+      </p>
+    )
+  }
+
+  let links: Link[] = []
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    const { data } = await supabase
+      .from('links')
+      .select('*')
+      .order('created_at', { ascending: false })
+    links = (data as Link[]) ?? []
+  } catch {
+    return (
+      <p className="text-zinc-500 text-sm py-8 text-center">
+        링크를 불러올 수 없습니다.
+      </p>
+    )
+  }
+
+  if (!links.length) {
     return (
       <p className="text-zinc-500 text-sm py-8 text-center">
         저장된 링크가 없습니다. 첫 번째 링크를 추가해보세요.
