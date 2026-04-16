@@ -30,10 +30,19 @@ jobs:
       - name: Build project
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
+      - name: Check DB migration availability
+        id: db-check
+        run: |
+          if [ -n "$DB_PASS" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          DB_PASS: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
       - name: Run DB migrations
-        # SUPABASE_DB_PASSWORD 미설정 시 스킵 — Supabase 대시보드에서 비밀번호 확인 후 설정
-        # Settings > Database > Connection string > Password
-        if: secrets.SUPABASE_DB_PASSWORD != ''
+        if: steps.db-check.outputs.available == 'true'
         continue-on-error: true
         run: |
           npx supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} \
