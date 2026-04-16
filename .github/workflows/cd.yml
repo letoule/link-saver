@@ -8,6 +8,10 @@ jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -38,8 +42,9 @@ jobs:
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Notify Slack
-        if: always()
-        uses: slackapi/slack-github-action@v1
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2
+        continue-on-error: true
         with:
           payload: |
             {
