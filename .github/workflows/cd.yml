@@ -41,8 +41,20 @@ jobs:
           URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> $GITHUB_OUTPUT
 
+      - name: Check Slack availability
+        if: always()
+        id: slack-check
+        run: |
+          if [ -n "$SLACK_URL" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          SLACK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Notify Slack
-        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        if: always() && steps.slack-check.outputs.available == 'true'
         uses: slackapi/slack-github-action@v2
         continue-on-error: true
         with:
